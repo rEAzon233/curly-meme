@@ -5,9 +5,11 @@ from datetime import date
 from dotenv import load_dotenv
 from vk_api.longpoll import VkLongPoll, VkEventType
 
+USERS_FILENAMES = 'users_data.sql'
+
 
 def do_auth_sqlite():  # Authorization in database
-    conn = sqlite3.connect('users_data.sql')
+    conn = sqlite3.connect(USERS_FILENAMES)
     cur = conn.cursor()
 
     cur.execute('''CREATE TABLE IF NOT EXISTS users (
@@ -19,25 +21,28 @@ def do_auth_sqlite():  # Authorization in database
 
 
 def checking_user_id(received_id):  # Checking user in database
-    conn = sqlite3.connect('users_data.sql')
+    conn = sqlite3.connect(USERS_FILENAMES)
     cur = conn.cursor()
-    in_exist = True
+    in_user_exist = True
 
     cur.execute(f'SELECT user_id FROM users')
-    checking = cur.fetchall()
+    saved_users = cur.fetchall()
 
-    for el in checking:
-        if received_id == el[0]:
-            in_exist = False
+    try:
+        for el in saved_users:
+            if received_id == el[0]:
+                in_user_exist = False
+    except Exception as error:
+        print(error)
 
     cur.close()
     conn.close()
 
-    return in_exist
+    return in_user_exist
 
 
-def added_user(user_id):  # Added user in database
-    conn = sqlite3.connect('users_data.sql')
+def add_user(user_id):  # Add user in database
+    conn = sqlite3.connect(USERS_FILENAMES)
     cur = conn.cursor()
 
     cur.execute(f"INSERT INTO users (user_id, registration_time) VALUES (?, ?)", (user_id, date.today()))
@@ -47,7 +52,7 @@ def added_user(user_id):  # Added user in database
 
 
 def callback():  # Displaying a list of users
-    conn = sqlite3.connect('users_data.sql')
+    conn = sqlite3.connect(USERS_FILENAMES)
     cur = conn.cursor()
 
     cur.execute('SELECT user_id, registration_time FROM users')
@@ -70,11 +75,11 @@ def do_auth_vk():  # Authorization in VK
     return vk_session
 
 
-def send_message(new_id, text):    # Response message
+def send_message(new_id, text):  # Response message
     do_auth_vk().method('messages.send', {'user_id': new_id, 'message': text, 'random_id': 0})
 
 
-def message_check():    # Checking a message for an audio message
+def message_check():  # Checking a message for an audio message
     longpoll = VkLongPoll(do_auth_vk())
 
     for event in longpoll.listen():
@@ -85,10 +90,10 @@ def message_check():    # Checking a message for an audio message
                 do_auth_sqlite()
 
                 if checking_user_id(user_id) and event.attachments['attach1_kind'] == 'audiomsg':
-                    added_user(user_id)
+                    add_user(user_id)
                     send_message(user_id, 'Спасибо, сообщение получено!')
                 else:
-                    send_message(user_id, 'Ваше сообщение уже было получено.')
+                    send_message(user_id, 'Ваше очередное сообщение нами получено')
             elif event.to_me and event.text.lower() == 'полный список участников':
                 try:
                     send_message(user_id, callback())
