@@ -100,6 +100,9 @@ def message_check():  # Checking a message for an audio message
                 except Exception as error:
                     print(error)
                     send_message(user_id, 'Ошибка')
-
-
-message_check()
+while True:
+    try:
+        message_check()
+    except Exception as error:
+        print(error)
+        message_check()
