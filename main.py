@@ -1,7 +1,10 @@
 import os
 import sqlite3
+
 import vk_api
+
 from datetime import date
+from time import sleep
 from dotenv import load_dotenv
 from vk_api.longpoll import VkLongPoll, VkEventType
 
@@ -100,9 +103,11 @@ def message_check():  # Checking a message for an audio message
                 except Exception as error:
                     print(error)
                     send_message(user_id, 'Ошибка')
+
+
 while True:
     try:
         message_check()
     except Exception as error:
         print(error)
-        message_check()
+        sleep(10)
